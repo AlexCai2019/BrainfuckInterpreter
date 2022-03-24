@@ -1,3 +1,5 @@
+#define _CRT_SECURE_NO_WARNINGS
+
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -5,13 +7,16 @@
 #include <exception>
 
 #if _WIN64 || __x86_64__ || __ppc64__
-typedef long long li;
+typedef long long num;
+const char* format = "%lld";
 #else
-typedef long li;
+typedef long num;
+const char* format = "%ld";
 #endif
 
-std::vector<unsigned char> memory = { '\0','\0','\0','\0','\0','\0','\0','\0' };
-li index = 0;
+std::vector<unsigned char> memory = { '\0','\0','\0','\0' };
+num index = 0;
+char exception[50];
 
 void interpret(std::string&); //throws custom exception
 
@@ -39,8 +44,8 @@ int main(int argc, char* argv[])
 	const char* symbols = "><+-.,[]"; //characters that a bf program legal
 	while (!file.eof()) //read the whole file
 	{
-		file >> read;
-		for (char& c : read) //check every characters if legal
+		std::getline(file, read);
+		for (char c : read) //check every characters if legal
 		{
 			for (int i = 0; i < 8; i++)
 			{
@@ -68,10 +73,10 @@ int main(int argc, char* argv[])
 
 void interpret(std::string& contents)
 {
-	li length = contents.length();
+	num length = contents.length();
 	std::string subContents;
 
-	for (li strIndex = 0; strIndex < length; strIndex++)
+	for (num strIndex = 0; strIndex < length; strIndex++)
 	{
 		switch (contents[strIndex])
 		{
@@ -103,10 +108,10 @@ void interpret(std::string& contents)
 
 		case '[':
 		{
-			li rightBracketIndex = -1; //the index of ]
-			li bracketsCount = 0; //calculate how many brackets meets in order to offset
+			num rightBracketIndex = -1; //the index of ]
+			num bracketsCount = 0; //calculate how many brackets meets in order to offset
 			char onTheWayFind;
-			for (li findRightBracket = strIndex + 1; findRightBracket < length; findRightBracket++)
+			for (num findRightBracket = strIndex + 1; findRightBracket < length; findRightBracket++)
 			{
 				onTheWayFind = contents[findRightBracket];
 
@@ -127,16 +132,25 @@ void interpret(std::string& contents)
 			}
 
 			if (bracketsCount || rightBracketIndex == -1)
-				throw std::exception(("Missing \']\' of \'[\' at character " + std::to_string(strIndex)).c_str());
+			{
+				char exceptionDest[] = "Missing \']\' of \'[\' at character ";
+				sprintf(exception, strcat(exceptionDest, format), strIndex);
+				throw std::exception(exception);
+			}
 
 			while (memory[index])
 				interpret(subContents);
 
+			subContents.clear();
 			strIndex = rightBracketIndex;
 		}
 		}
 
 		if (index < 0)
-			throw std::exception(("Array out of bounds at character" + std::to_string(strIndex)).c_str());
+		{
+			char exceptionDest[] = "Array out of bounds at character ";
+			sprintf(exception, strcat(exceptionDest, format), strIndex);
+			throw std::exception(exception);
+		}
 	}
 }
